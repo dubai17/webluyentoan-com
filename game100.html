@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bé Vui Học Toán Nâng Cao</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation;
+        }
+        .expression-box {
+            width: 150px;
+            height: 100px;
+            font-size: 2.25rem; /* Reduced font size for expressions */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+        }
+        .operator-btn {
+            width: 80px;
+            height: 80px;
+            font-size: 2.5rem;
+            transition: all 0.2s ease-in-out;
+        }
+        .operator-btn:active {
+            transform: scale(0.95);
+        }
+        .mouse-face {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-teal-100 flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-lg mx-auto bg-white rounded-2xl shadow-2xl p-6 md:p-8 text-center">
+
+        <!-- Header -->
+        <h1 class="text-3xl md:text-4xl font-bold text-teal-600 mb-4">Bé Vui Học Toán</h1>
+        <p class="text-gray-500 mb-6">Tính nhẩm rồi chọn dấu đúng nhé!</p>
+
+        <!-- Score Board -->
+        <div class="flex justify-center space-x-6 mb-6">
+            <div class="text-center">
+                <span class="text-4xl font-bold text-green-500" id="correct-score">0</span>
+                <p class="text-sm text-gray-500">Đúng</p>
+            </div>
+             <div class="text-center">
+                <span class="text-4xl font-bold text-blue-500" id="question-counter">0</span>
+                <p class="text-sm text-gray-500">Tổng câu</p>
+            </div>
+            <div class="text-center">
+                <span class="text-4xl font-bold text-red-500" id="incorrect-score">0</span>
+                <p class="text-sm text-gray-500">Sai</p>
+            </div>
+        </div>
+
+        <!-- Mouse Icon -->
+        <div class="my-6 h-24 flex items-center justify-center">
+            <svg id="mouse-icon" class="mouse-face h-24 w-24 text-gray-400" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path id="mouse-mouth" d="M8 15a4 4 0 108 0H8z"/>
+                <circle cx="9" cy="10" r="1.5"/>
+                <circle cx="15" cy="10" r="1.5"/>
+            </svg>
+        </div>
+
+        <!-- Math Problem -->
+        <div class="flex items-center justify-center space-x-2 md:space-x-4 mb-8">
+            <div id="num1" class="expression-box bg-blue-100 text-blue-800 font-bold rounded-xl shadow-md">?</div>
+            <div class="text-4xl font-bold text-gray-400">?</div>
+            <div id="num2" class="expression-box bg-purple-100 text-purple-800 font-bold rounded-xl shadow-md">?</div>
+        </div>
+
+        <!-- Operator Buttons -->
+        <div class="flex justify-center items-center space-x-3 md:space-x-4">
+            <button onclick="checkAnswer('<')" class="operator-btn bg-green-500 text-white font-bold rounded-full shadow-lg hover:bg-green-600">&lt;</button>
+            <button onclick="checkAnswer('=')" class="operator-btn bg-yellow-500 text-white font-bold rounded-full shadow-lg hover:bg-yellow-600">=</button>
+            <button onclick="checkAnswer('>')" class="operator-btn bg-red-500 text-white font-bold rounded-full shadow-lg hover:bg-red-600">&gt;</button>
+        </div>
+
+    </div>
+
+    <script>
+        // DOM Elements
+        const num1El = document.getElementById('num1');
+        const num2El = document.getElementById('num2');
+        const correctScoreEl = document.getElementById('correct-score');
+        const incorrectScoreEl = document.getElementById('incorrect-score');
+        const questionCounterEl = document.getElementById('question-counter');
+        const mouseIcon = document.getElementById('mouse-icon');
+        const mouseMouth = document.getElementById('mouse-mouth');
+        const buttons = document.querySelectorAll('.operator-btn');
+
+        // Game State
+        let result1, result2;
+        let correctScore = 0;
+        let incorrectScore = 0;
+        let questionCount = 0;
+        let isChecking = false;
+        
+        // Audio Synthesizer
+        let synth;
+        let audioStarted = false;
+
+        function initializeAudio() {
+            if (audioStarted) return;
+            Tone.start();
+            synth = new Tone.Synth().toDestination();
+            audioStarted = true;
+        }
+
+        // --- Mouse Face Functions ---
+        function setMouseFace(state) {
+            mouseIcon.classList.remove('text-green-500', 'text-red-500', 'text-gray-400');
+            switch (state) {
+                case 'happy':
+                    mouseIcon.classList.add('text-green-500');
+                    mouseMouth.setAttribute('d', 'M8 14 C10 17, 14 17, 16 14');
+                    break;
+                case 'sad':
+                    mouseIcon.classList.add('text-red-500');
+                    mouseMouth.setAttribute('d', 'M8 16 C10 13, 14 13, 16 16');
+                    break;
+                default:
+                    mouseIcon.classList.add('text-gray-400');
+                    mouseMouth.setAttribute('d', 'M8 15a4 4 0 108 0H8z');
+                    break;
+            }
+        }
+
+        // --- Sound Functions ---
+        function playCorrectSound() {
+            if (!synth) return;
+            const now = Tone.now();
+            synth.triggerAttackRelease("C5", "8n", now);
+            synth.triggerAttackRelease("G5", "8n", now + 0.2);
+        }
+
+        function playIncorrectSound() {
+            if (!synth) return;
+            synth.triggerAttackRelease("A2", "8n");
+        }
+
+        // --- Game Logic ---
+        function generateExpression() {
+            let numA, numB, operator, result;
+            const isAddition = Math.random() > 0.5;
+
+            if (isAddition) {
+                operator = '+';
+                // Ensure the sum is <= 30
+                result = 31; // Start with a value > 30 to enter the loop
+                while (result > 30) {
+                    numA = Math.floor(Math.random() * 31); // 0-30
+                    numB = Math.floor(Math.random() * 31); // 0-30
+                    result = numA + numB;
+                }
+            } else { // Subtraction
+                operator = '–'; // Use en dash for better visual
+                // Ensure the result is >= 0
+                numA = Math.floor(Math.random() * 31); // 0-30
+                numB = Math.floor(Math.random() * 31); // 0-30
+                // Swap to avoid negative numbers
+                if (numA < numB) {
+                    [numA, numB] = [numB, numA];
+                }
+                result = numA - numB;
+            }
+            return {
+                text: `${numA} ${operator} ${numB}`,
+                value: result
+            };
+        }
+
+        function generateProblem() {
+            questionCount++;
+            questionCounterEl.textContent = questionCount;
+            
+            const exp1 = generateExpression();
+            const exp2 = generateExpression();
+
+            result1 = exp1.value;
+            result2 = exp2.value;
+
+            num1El.textContent = exp1.text;
+            num2El.textContent = exp2.text;
+            setMouseFace('neutral');
+        }
+
+        function checkAnswer(userAnswer) {
+            initializeAudio();
+            if (isChecking) return;
+            isChecking = true;
+            buttons.forEach(btn => btn.disabled = true);
+
+            let correctAnswer;
+            if (result1 < result2) {
+                correctAnswer = '<';
+            } else if (result1 > result2) {
+                correctAnswer = '>';
+            } else {
+                correctAnswer = '=';
+            }
+
+            if (userAnswer === correctAnswer) {
+                correctScore++;
+                correctScoreEl.textContent = correctScore;
+                playCorrectSound();
+                setMouseFace('happy');
+            } else {
+                incorrectScore++;
+                incorrectScoreEl.textContent = incorrectScore;
+                playIncorrectSound();
+                setMouseFace('sad');
+            }
+
+            setTimeout(() => {
+                generateProblem();
+                isChecking = false;
+                buttons.forEach(btn => btn.disabled = false);
+            }, 1500);
+        }
+
+        // Initialize the game
+        window.onload = () => {
+            generateProblem();
+        };
+    </script>
+</body>
+</html>
