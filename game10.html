@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi Toán Học Dễ Thương</title>
+    <!-- Tải Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải Tone.js cho âm thanh -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fce4ec; /* Hồng pastel nhẹ */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .game-container {
+            max-width: 420px; /* Thích hợp cho thiết bị di động/máy tính bảng */
+            width: 100%;
+            background-color: #ffffff;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            border-radius: 20px;
+            text-align: center;
+        }
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem; /* Khoảng cách giữa các nút */
+        }
+        .number-button {
+            padding: 1.25rem 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            border-radius: 14px;
+            transition: transform 0.1s, box-shadow 0.1s;
+            background-color: #ffe082; /* Vàng pastel */
+            color: #333;
+            border: 3px solid #f9a825;
+            box-shadow: 0 4px 0 #f9a825;
+            user-select: none;
+        }
+        .number-button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #f9a825;
+        }
+        .feedback {
+            min-height: 30px;
+            font-size: 1.125rem;
+            font-weight: 700;
+        }
+        /* Custom styles for cute/friendly theme */
+        .header-title {
+            color: #d81b60; /* Đỏ dâu */
+            font-weight: 900;
+            text-shadow: 1px 1px 0 #ffc1e3;
+        }
+        .score-box {
+            background-color: #e0f7fa; /* Xanh ngọc pastel */
+            color: #00838f;
+        }
+        .question-box {
+            background-color: #f8bbd0; /* Hồng đậm pastel */
+            color: white;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+        }
+        .stats-box {
+            background-color: #f3e5f5; /* Tím nhạt pastel */
+            color: #4a148c;
+            border: 1px solid #ce93d8;
+        }
+        .correct-stat { color: #1e88e5; } /* Xanh dương cho đúng */
+        .wrong-stat { color: #e53935; } /* Đỏ cho sai */
+    </style>
+</head>
+<body>
+
+<div id="game" class="game-container">
+    <h1 class="header-title text-3xl mb-4">Trò Chơi Bé Học Toán</h1>
+
+    <!-- Score and Question Area -->
+    <div class="flex justify-between items-center mb-4 p-3 rounded-xl score-box">
+        <div class="text-lg font-bold">Điểm: <span id="score">0</span></div>
+        <div class="text-lg font-bold">Câu hỏi: <span id="question-count">1</span></div>
+    </div>
+    
+    <!-- New Stats Section -->
+    <div class="stats-box flex justify-around items-center mb-6 p-3 rounded-xl text-base">
+        <div class="font-bold">Đúng: <span id="correct-count" class="correct-stat">0</span></div>
+        <div class="font-bold">Sai: <span id="wrong-count" class="wrong-stat">0</span></div>
+    </div>
+    
+    <!-- Math Problem Display -->
+    <div id="question-display" class="question-box text-5xl font-extrabold p-8 mb-6 rounded-xl">
+        ? + ? = ?
+    </div>
+
+    <!-- Feedback Message -->
+    <div id="feedback-message" class="feedback mb-6 text-pink-600">
+        Chọn đáp án đúng!
+    </div>
+
+    <!-- Answer Buttons -->
+    <div id="button-grid" class="button-grid">
+        <!-- Buttons 0-10 will be generated here -->
+    </div>
+</div>
+
+<script>
+    // --- KHỞI TẠO TONE.JS CHO ÂM THANH PHẢN HỒI ---
+    const synth = new Tone.Synth().toDestination();
+
+    // Âm thanh khi trả lời đúng: cao, vui vẻ
+    function playCorrectSound() {
+        // Tần số G5
+        synth.triggerAttackRelease("G5", "8n", Tone.now());
+        synth.triggerAttackRelease("C6", "8n", Tone.now() + 0.15);
+    }
+
+    // Âm thanh khi trả lời sai: thấp, ngắn
+    function playWrongSound() {
+        // Tần số D3
+        synth.triggerAttackRelease("D3", "8n", Tone.now());
+    }
+
+    // --- BIẾN TOÀN CỤC CỦA GAME ---
+    let currentQuestion = {};
+    let score = 0;
+    let correctCount = 0; // Biến đếm số câu trả lời đúng
+    let wrongCount = 0;   // Biến đếm số câu trả lời sai
+    let questionNumber = 1;
+    const MAX_RANGE = 10;
+    
+    // Lấy các phần tử DOM
+    const displayElement = document.getElementById('question-display');
+    const scoreElement = document.getElementById('score');
+    const qCountElement = document.getElementById('question-count');
+    const feedbackElement = document.getElementById('feedback-message');
+    const buttonGrid = document.getElementById('button-grid');
+    const correctCountElement = document.getElementById('correct-count'); // Element mới
+    const wrongCountElement = document.getElementById('wrong-count');     // Element mới
+    
+    let isProcessing = false; // Ngăn chặn nhấp đúp khi đang xử lý
+
+    // --- HÀM CẬP NHẬT THỐNG KÊ (MỚI) ---
+    function updateStatsDisplay() {
+        correctCountElement.textContent = correctCount;
+        wrongCountElement.textContent = wrongCount;
+    }
+
+    // --- HÀM TẠO CÂU HỎI ---
+    function generateQuestion() {
+        let num1, num2, operator, correctAnswer;
+
+        // Đảm bảo phép toán nằm trong phạm vi 10 và không có số âm (kết quả >= 0)
+        do {
+            num1 = Math.floor(Math.random() * (MAX_RANGE + 1));
+            num2 = Math.floor(Math.random() * (MAX_RANGE + 1));
+            
+            // Random chọn phép cộng hoặc trừ
+            operator = Math.random() < 0.5 ? '+' : '-';
+
+            if (operator === '+') {
+                correctAnswer = num1 + num2;
+            } else {
+                // Đảm bảo số thứ nhất lớn hơn hoặc bằng số thứ hai cho phép trừ
+                if (num1 < num2) {
+                    [num1, num2] = [num2, num1]; // Hoán đổi để kết quả không âm
+                }
+                correctAnswer = num1 - num2;
+            }
+        } while (correctAnswer > MAX_RANGE || correctAnswer < 0);
+        
+        // Lưu câu hỏi hiện tại
+        currentQuestion = { num1, num2, operator, correctAnswer };
+
+        // Cập nhật hiển thị
+        displayElement.textContent = `${num1} ${operator} ${num2} = ?`;
+    }
+
+    // --- HÀM XỬ LÝ TRẢ LỜI ---
+    function handleAnswer(selectedAnswer) {
+        if (isProcessing) return;
+        isProcessing = true;
+
+        const { correctAnswer } = currentQuestion;
+
+        if (selectedAnswer === correctAnswer) {
+            // Đáp án đúng
+            score++;
+            correctCount++; // Tăng số câu đúng
+            playCorrectSound();
+            feedbackElement.textContent = `Chính xác! ${currentQuestion.num1} ${currentQuestion.operator} ${currentQuestion.num2} = ${correctAnswer}`;
+            feedbackElement.classList.add('text-green-600');
+            feedbackElement.classList.remove('text-red-600', 'text-pink-600');
+            
+            // Cập nhật UI điểm và số câu hỏi
+            scoreElement.textContent = score;
+            questionNumber++;
+            qCountElement.textContent = questionNumber;
+            updateStatsDisplay(); // Cập nhật hiển thị thống kê
+
+            // Chờ một chút rồi nhảy sang câu hỏi mới
+            setTimeout(() => {
+                feedbackElement.textContent = 'Chọn đáp án đúng!';
+                feedbackElement.classList.add('text-pink-600');
+                feedbackElement.classList.remove('text-green-600');
+                generateQuestion();
+                isProcessing = false;
+            }, 800);
+
+        } else {
+            // Đáp án sai
+            wrongCount++; // Tăng số câu sai
+            playWrongSound();
+            feedbackElement.textContent = `Sai rồi! Hãy thử lại.`;
+            feedbackElement.classList.add('text-red-600');
+            feedbackElement.classList.remove('text-green-600', 'text-pink-600');
+            
+            updateStatsDisplay(); // Cập nhật hiển thị thống kê
+            
+            // Cho phép người chơi thử lại ngay lập tức
+            isProcessing = false;
+        }
+    }
+
+    // --- KHỞI TẠO NÚT TRẢ LỜI ---
+    function createAnswerButtons() {
+        // Tạo các nút từ 0 đến 10
+        for (let i = 0; i <= MAX_RANGE; i++) {
+            const button = document.createElement('button');
+            button.className = 'number-button';
+            button.textContent = i;
+            button.value = i;
+            button.addEventListener('click', () => handleAnswer(parseInt(button.value)));
+            buttonGrid.appendChild(button);
+        }
+        // Thêm một ô trống để giữ layout 3x4 nếu cần, hoặc để làm nút chức năng (ở đây tôi dùng ô trống để giữ 3x3 + 1)
+        // Hiện tại dùng 4x3 grid (0-11)
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'number-button bg-gray-200 border-gray-300 shadow-none cursor-default hover:bg-gray-200';
+        emptyCell.textContent = '';
+        emptyCell.style.border = 'none';
+        emptyCell.style.boxShadow = 'none';
+        emptyCell.style.backgroundColor = '#fce4ec';
+        
+        buttonGrid.appendChild(emptyCell);
+    }
+    
+    // --- CHẠY GAME ---
+    function startGame() {
+        createAnswerButtons();
+        generateQuestion();
+        updateStatsDisplay(); // Khởi tạo hiển thị thống kê
+    }
+
+    // Đảm bảo Tone.js được bắt đầu sau khi có tương tác của người dùng
+    document.body.addEventListener('click', () => {
+        Tone.start();
+    }, { once: true });
+
+    // Bắt đầu trò chơi khi trang tải xong
+    window.onload = startGame;
+
+</script>
+
+</body>
+</html>
