@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bé Học Cộng Trừ (Phạm Vi 500)</title>
+    <!-- Tải Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#047857', /* Màu xanh lá cây đậm cho tiêu đề */
+                        'green-btn': '#10b981', 
+                        'yellow-btn': '#f59e0b',
+                        'red-btn': '#ef4444',
+                        'purple-btn': '#8b5cf6', /* Màu tím mới cho nút */
+                        'card-bg-expr': '#e0f2f1', /* Màu xanh nhạt cho biểu thức */
+                        'card-bg-result': '#ede9fe', /* Màu tím nhạt cho kết quả */
+                    },
+                    borderRadius: {
+                        '3xl': '1.5rem',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* CSS tùy chỉnh cho trò chơi trông thân thiện hơn */
+        body { font-family: 'Inter', sans-serif; }
+        .game-card {
+            background: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .expression-box {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .score-item {
+            font-size: 2rem; 
+            font-weight: 700;
+        }
+        .score-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .answer-btn {
+            transition: transform 0.1s, opacity 0.1s, box-shadow 0.2s;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
+
+    <div id="app" class="w-full max-w-lg p-8 rounded-3xl mt-8 game-card">
+        <h1 class="text-3xl font-extrabold text-center text-primary mb-1">
+            Làm Toán Cùng Bé
+        </h1>
+        <p class="text-center text-gray-500 mb-6 text-sm">
+            Tính toán cộng trừ trong phạm vi 500 và chọn đáp án đúng!
+        </p>
+
+        <!-- Trạng thái Điểm số mới: Hiển thị Tổng số câu Đúng và Tổng số câu Sai -->
+        <div class="flex justify-center items-end space-x-6 mb-8">
+            <!-- Tổng số câu Đúng -->
+            <div class="flex flex-col items-center text-green-600">
+                <span id="correct-count" class="score-item">0</span>
+                <span class="score-label">Đúng</span>
+            </div>
+            <!-- Tổng Câu Đã Làm -->
+            <div class="flex flex-col items-center text-gray-500">
+                <span id="total-count" class="score-item text-4xl font-black">0</span>
+                <span class="score-label">Tổng câu</span>
+            </div>
+            <!-- Tổng số câu Sai -->
+            <div class="flex flex-col items-center text-red-600">
+                <span id="incorrect-count" class="score-item">0</span>
+                <span class="score-label">Sai</span>
+            </div>
+        </div>
+
+        <!-- Thông báo (Mặt cười) -->
+        <div class="text-center mb-10">
+            <div id="feedback-emoji" class="text-5xl">🤔</div>
+        </div>
+
+        <!-- Khu vực bài toán tính toán -->
+        <div id="problem-area" class="flex justify-center items-center gap-4 mb-12">
+            <!-- Biểu thức (Ví dụ: 123 + 45) -->
+            <div id="expression" 
+                 class="expression-box w-48 sm:w-64 h-20 flex items-center justify-center 
+                        bg-card-bg-expr text-primary rounded-xl text-2xl sm:text-3xl font-bold">
+                ? + ?
+            </div>
+
+            <!-- Dấu bằng -->
+            <div id="equals-sign" class="text-3xl font-black text-gray-500">=</div>
+
+            <!-- Kết quả (Chỗ trống để hiển thị sau khi trả lời) -->
+            <div id="result-placeholder" 
+                 class="expression-box w-20 h-20 flex items-center justify-center 
+                        bg-card-bg-result text-purple-600 rounded-xl text-2xl sm:text-3xl font-bold">
+                ?
+            </div>
+        </div>
+
+        <!-- Khu vực 4 đáp án trắc nghiệm -->
+        <div id="answer-buttons" class="grid grid-cols-2 gap-4 max-w-xs mx-auto">
+            <!-- 4 nút đáp án (sẽ được cập nhật bằng JS) -->
+            <button data-value="0" class="answer-btn p-4 bg-green-btn text-white text-2xl font-bold rounded-xl shadow-lg hover:opacity-90 transition transform hover:scale-105">?</button>
+            <button data-value="0" class="answer-btn p-4 bg-yellow-btn text-white text-2xl font-bold rounded-xl shadow-lg hover:opacity-90 transition transform hover:scale-105">?</button>
+            <button data-value="0" class="answer-btn p-4 bg-red-btn text-white text-2xl font-bold rounded-xl shadow-lg hover:opacity-90 transition transform hover:scale-105">?</button>
+            <button data-value="0" class="answer-btn p-4 bg-purple-btn text-white text-2xl font-bold rounded-xl shadow-lg hover:opacity-90 transition transform hover:scale-105">?</button>
+        </div>
+        
+        <!-- Hiển thị lỗi nghiêm trọng (để debug) -->
+        <p id="error-message" class="text-xs text-red-500 mt-4 hidden text-center">
+            <!-- Lỗi khởi tạo sẽ hiển thị ở đây -->
+        </p>
+    </div>
+
+    <!-- Script Module để sử dụng Firebase Auth và Logic Game -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            signInWithCustomToken, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        /* Đã xóa các import liên quan đến Firestore vì không cần lưu điểm cao nhất/chuỗi đúng */
+
+        // Cài đặt chung và Biến toàn cục
+        const MAX_LIMIT = 500; // Giới hạn cho phép tính và kết quả (trong phạm vi 500)
+        const SAMPLE_RATE = 24000;
+        const NEXT_QUESTION_DELAY = 1500; // 1.5 giây
+
+        // Dữ liệu âm thanh PCM Base64 
+        // Correct Sound (Ting/Tinh Tinh)
+        const CORRECT_SOUND_B64 = "T1NHD1NHDFNUFxd/Y31uYnlraWluYn1oZnpkZGlkZmZtZm5vbnV2e3x/d4mJjoyOlpWcmo6OlpWcnJycnJycnJycnJycnJycnJycnJyc"; 
+        // Incorrect Sound (Sad/Fail Sound)
+        const SAD_SOUND_B64 = "DwsLDw0OEhESExQVFRUWGBcZGRsdHR4eHyAhICEiIyMjJCQjJSYoJCcqLCwvMjQ3Oj0/Q0VE"; 
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app;
+        let auth; // Giữ lại Auth để Canvas hoạt động
+        let userId = null;
+        let currentProblem = {};
+        
+        // Cập nhật biến để theo dõi tổng số câu Đúng/Sai
+        let totalCorrectCount = 0; // Tổng số câu trả lời đúng
+        let totalIncorrectCount = 0; // Tổng số câu trả lời sai
+        let totalCount = 0; // Tổng số câu đã làm
+
+        // Tham chiếu DOM
+        const errorMessageElement = document.getElementById('error-message');
+        const expressionElement = document.getElementById('expression'); // Biểu thức
+        const resultPlaceholderElement = document.getElementById('result-placeholder'); // Kết quả
+        const feedbackEmojiElement = document.getElementById('feedback-emoji');
+        const correctCountDisplay = document.getElementById('correct-count'); // Hiển thị Tổng Đúng
+        const incorrectCountDisplay = document.getElementById('incorrect-count'); // Hiển thị Tổng Sai
+        const totalCountDisplay = document.getElementById('total-count');
+        const answerButtons = document.querySelectorAll('.answer-btn');
+
+        // --- Audio Utilities ---
+
+        function base64ToArrayBuffer(base64) {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function pcmToWav(pcm16, sampleRate) {
+            const numChannels = 1;
+            const bitsPerSample = 16;
+            const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+            const blockAlign = numChannels * (bitsPerSample / 8);
+            const dataSize = pcm16.length * (bitsPerSample / 8);
+            const buffer = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(buffer);
+
+            let offset = 0;
+            // RIFF chunk
+            view.setUint32(offset, 0x52494646, false); offset += 4; // 'RIFF'
+            view.setUint32(offset, 36 + dataSize, true); offset += 4; // File length
+            view.setUint32(offset, 0x57415645, false); offset += 4; // 'WAVE'
+            // FMT chunk
+            view.setUint32(offset, 0x666d7420, false); offset += 4; // 'fmt '
+            view.setUint32(offset, 16, true); offset += 4; // Chunk length
+            view.setUint16(offset, 1, true); offset += 2; // PCM format
+            view.setUint16(offset, numChannels, true); offset += 2; // Channels
+            view.setUint32(offset, sampleRate, true); offset += 4; // Sample rate
+            view.setUint32(offset, byteRate, true); offset += 4; // Byte rate
+            view.setUint16(offset, blockAlign, true); offset += 2; // Block align
+            view.setUint16(offset, bitsPerSample, true); offset += 2; // Bits per sample
+            // DATA chunk
+            view.setUint32(offset, 0x64617461, false); offset += 4; // 'data'
+            view.setUint32(offset, dataSize, true); offset += 4; // Data size
+            // Write PCM data
+            for (let i = 0; i < pcm16.length; i++) {
+                view.setInt16(offset, pcm16[i], true);
+                offset += 2;
+            }
+
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        function playAudio(base64AudioData, sampleRate = SAMPLE_RATE) {
+            try {
+                const pcmDataBuffer = base64ToArrayBuffer(base64AudioData);
+                const pcm16 = new Int16Array(pcmDataBuffer);
+                const wavBlob = pcmToWav(pcm16, sampleRate);
+                const audioUrl = URL.createObjectURL(wavBlob);
+                
+                const audio = new Audio(audioUrl);
+                audio.volume = 0.5;
+                audio.play().catch(e => console.log("Lỗi phát âm thanh (có thể do trình duyệt chặn):", e));
+            } catch (e) {
+                console.error("Không thể phát âm thanh:", e);
+            }
+        }
+
+        const to = (promise) => {
+            return promise.then(data => [null, data]).catch(err => [err, undefined]);
+        };
+
+        // --- Logic Game ---
+        
+        // Hàm tạo một biểu thức đơn (đã có từ phiên bản trước, được tối ưu)
+        function generateMathExpression() {
+            const operator = Math.random() < 0.5 ? '+' : '-';
+            let num1, num2, value;
+
+            if (operator === '+') {
+                // Đảm bảo tổng trong phạm vi 500
+                value = Math.floor(Math.random() * (MAX_LIMIT - 10)) + 10; 
+                num1 = Math.floor(Math.random() * (value - 1)) + 1; 
+                num2 = value - num1;
+            } else { // '-'
+                // Đảm bảo số bị trừ từ 10 trở lên để phép trừ có ý nghĩa
+                num1 = Math.floor(Math.random() * (MAX_LIMIT - 10)) + 10; 
+                num2 = Math.floor(Math.random() * num1) + 1; 
+                value = num1 - num2; 
+            }
+            
+            return { text: `${num1} ${operator} ${num2}`, value: value };
+        }
+        
+        function generateDistractor(correctValue, attempts = 0, optionsSet) {
+            let distractor;
+            
+            // Chiến lược tạo nhiễu:
+            if (attempts % 4 === 0) {
+                // Tweak hàng chục: +/- 10, 20
+                distractor = correctValue + (Math.random() < 0.5 ? -1 : 1) * (Math.floor(Math.random() * 2) + 1) * 10;
+            } else if (attempts % 4 === 1) {
+                // Tweak hàng đơn vị: +/- 1, 2
+                distractor = correctValue + (Math.random() < 0.5 ? -1 : 1) * (Math.floor(Math.random() * 2) + 1);
+            } else if (attempts % 4 === 2) {
+                // Đảo ngược chữ số cuối (chỉ áp dụng nếu kết quả > 10)
+                if (correctValue >= 10) {
+                    const str = String(correctValue);
+                    const lastDigit = str[str.length - 1];
+                    const secondLastDigit = str[str.length - 2];
+                    // Tạo số nhiễu bằng cách đảo ngược 2 chữ số cuối (nếu có)
+                    let base = str.slice(0, -2);
+                    distractor = parseInt(base + lastDigit + secondLastDigit);
+                }
+            } else {
+                // Số ngẫu nhiên trong khoảng gần ( +/- 50 )
+                distractor = correctValue + (Math.random() < 0.5 ? -1 : 1) * (Math.floor(Math.random() * 40) + 10);
+            }
+            
+            // Đảm bảo distractor là số hợp lệ, trong giới hạn và không trùng lặp
+            distractor = Math.max(0, Math.min(MAX_LIMIT, distractor));
+            
+            // Tránh trùng với đáp án đúng và các đáp án nhiễu đã có
+            if (optionsSet.has(distractor) || distractor === correctValue) {
+                // Nếu trùng, thử lại với chiến lược khác
+                return generateDistractor(correctValue, attempts + 1, optionsSet);
+            }
+            
+            return distractor;
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function generateProblem() {
+            let problem = generateMathExpression(); // { text: "123 + 45", value: 168 }
+            const correctAnswer = problem.value;
+            const options = new Set([correctAnswer]);
+
+            // Generate 3 unique incorrect options (distractors)
+            let attempts = 0;
+            while (options.size < 4 && attempts < 20) {
+                let distractor = generateDistractor(correctAnswer, attempts, options);
+                options.add(distractor);
+                attempts++;
+            }
+            // Nếu vẫn không đủ 4 đáp án (rất hiếm), thêm các số ngẫu nhiên xa
+            while (options.size < 4) {
+                 options.add(Math.floor(Math.random() * MAX_LIMIT));
+            }
+
+
+            const optionArray = Array.from(options);
+            shuffleArray(optionArray);
+
+            currentProblem = { 
+                expression: problem.text, 
+                correctAnswer: correctAnswer,
+                options: optionArray
+            };
+            
+            expressionElement.textContent = currentProblem.expression;
+            resultPlaceholderElement.textContent = '?'; 
+            feedbackEmojiElement.textContent = '🤔'; 
+            resultPlaceholderElement.classList.remove('text-green-600', 'text-red-600');
+            resultPlaceholderElement.classList.add('text-purple-600'); // Reset color
+
+            // Map options to buttons
+            answerButtons.forEach((btn, index) => {
+                const optionValue = currentProblem.options[index];
+                btn.textContent = optionValue;
+                btn.setAttribute('data-value', optionValue);
+            });
+        }
+
+        function checkAnswer(selectedValue) {
+            answerButtons.forEach(btn => btn.disabled = true);
+            
+            const selectedValueNumber = parseInt(selectedValue);
+            const isCorrect = selectedValueNumber === currentProblem.correctAnswer;
+            
+            totalCount++;
+            let emoji;
+            let finalResultColor;
+
+            if (isCorrect) {
+                totalCorrectCount++; // Tăng tổng số câu đúng
+                emoji = '🥳'; 
+                finalResultColor = 'text-green-600';
+                playAudio(CORRECT_SOUND_B64, SAMPLE_RATE); 
+            } else {
+                totalIncorrectCount++; // Tăng tổng số câu sai
+                emoji = '😔'; 
+                finalResultColor = 'text-red-600';
+                playAudio(SAD_SOUND_B64, SAMPLE_RATE); 
+            }
+            
+            // Highlight the correct answer among options for visual feedback
+            answerButtons.forEach(btn => {
+                const btnValue = parseInt(btn.getAttribute('data-value'));
+                // Nếu là đáp án đúng, thêm highlight màu xanh
+                if (btnValue === currentProblem.correctAnswer) {
+                    btn.classList.add('ring-4', 'ring-green-500', 'ring-offset-2', 'shadow-2xl');
+                } 
+                // Nếu là đáp án người dùng chọn và bị sai, thêm highlight màu đỏ
+                else if (btnValue === selectedValueNumber && !isCorrect) {
+                    btn.classList.add('ring-4', 'ring-red-500', 'ring-offset-2', 'shadow-2xl');
+                }
+            });
+
+            // Cập nhật hiển thị điểm số (Tổng Đúng / Tổng Sai)
+            correctCountDisplay.textContent = totalCorrectCount; 
+            incorrectCountDisplay.textContent = totalIncorrectCount; 
+            totalCountDisplay.textContent = totalCount;
+            feedbackEmojiElement.textContent = emoji;
+            resultPlaceholderElement.textContent = currentProblem.correctAnswer; 
+            resultPlaceholderElement.classList.remove('text-purple-600');
+            resultPlaceholderElement.classList.add(finalResultColor);
+
+            // Chuyển sang câu hỏi tiếp theo
+            setTimeout(() => {
+                // Reset button highlights
+                answerButtons.forEach(btn => {
+                    btn.classList.remove('ring-4', 'ring-green-500', 'ring-red-500', 'ring-offset-2', 'shadow-2xl');
+                });
+                
+                generateProblem();
+                answerButtons.forEach(btn => btn.disabled = false);
+            }, NEXT_QUESTION_DELAY); 
+        }
+
+        // --- Khởi tạo và Sự kiện ---
+
+        async function initializeFirebase() {
+            try {
+                if (Object.keys(firebaseConfig).length === 0) {
+                    console.warn('Cấu hình Firebase không khả dụng. Chỉ chơi ngoại tuyến.');
+                    return;
+                }
+                
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                
+                if (initialAuthToken) {
+                    const [error] = await to(signInWithCustomToken(auth, initialAuthToken));
+                    if (error) await signInAnonymously(auth);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        // Không cần gọi loadHighScore/saveHighScore nữa
+                    } else {
+                        userId = null;
+                        console.log('Đăng nhập ẩn danh thất bại.');
+                    }
+                });
+
+            } catch (error) {
+                errorMessageElement.textContent = `Lỗi khởi tạo: ${error.message}`;
+                errorMessageElement.classList.remove('hidden');
+                console.error("Lỗi trong quá trình khởi tạo Firebase:", error);
+            }
+        }
+
+        function startGame() {
+            generateProblem();
+            // Gắn sự kiện cho các nút trả lời
+            answerButtons.forEach(button => {
+                button.disabled = false;
+                button.addEventListener('click', (e) => {
+                    const selectedAnswerValue = e.currentTarget.getAttribute('data-value');
+                    checkAnswer(selectedAnswerValue);
+                });
+            });
+        }
+        
+        window.onload = () => {
+            startGame();
+            initializeFirebase();
+        }
+    </script>
+</body>
+</html>
