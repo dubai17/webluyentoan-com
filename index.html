@@ -12,55 +12,68 @@
     }
     .menu-card {
       transition: all 0.3s ease;
+      padding: 1.25rem;
+      border-radius: 1.25rem;
     }
     .menu-card:hover {
       transform: scale(1.05);
     }
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      width: 100%;
+      max-width: 900px;
+    }
   </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center text-center p-6">
+<body class="min-h-screen flex flex-col items-center justify-center text-center p-4">
 
-  <h1 class="text-4xl font-extrabold text-purple-700 mb-8">🎓 Bé Vui Học Toán</h1>
+  <h1 class="text-3xl md:text-4xl font-extrabold text-purple-700 mb-6">🎓 Bé Vui Học Toán</h1>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 max-w-7xl w-full">
+  <div class="menu-grid">
 
-    <!-- Game 1 -->
-    <a href="game10.html" class="menu-card bg-white rounded-3xl p-8 shadow-xl hover:bg-red-100">
-      <h2 class="text-2xl font-bold text-red-600 mb-2">Toán phạm vi 10</h2>
-      <p class="text-gray-600 text-sm">Cộng trừ siêu dễ cho bé bắt đầu 🧸</p>
+    <!-- Game 10 -->
+    <a href="game10.html" class="menu-card bg-white shadow-md hover:bg-red-100">
+      <h2 class="text-lg font-bold text-red-600 mb-1">Phạm vi 10</h2>
+      <p class="text-gray-600 text-xs">Cộng trừ siêu dễ 🧸</p>
     </a>
 
-    <!-- Game 2 -->
-    <a href="game20.html" class="menu-card bg-white rounded-3xl p-8 shadow-xl hover:bg-green-100">
-      <h2 class="text-2xl font-bold text-green-600 mb-2">Toán phạm vi 20</h2>
-      <p class="text-gray-600 text-sm">Cộng, trừ, số lớn hơn phạm vi 20 🎈</p>
+    <!-- Game 20 -->
+    <a href="game20.html" class="menu-card bg-white shadow-md hover:bg-green-100">
+      <h2 class="text-lg font-bold text-green-600 mb-1">Phạm vi 20</h2>
+      <p class="text-gray-600 text-xs">Cộng, trừ, so sánh 🎈</p>
     </a>
 
-    <!-- Game 3 -->
-    <a href="game100.html" class="menu-card bg-white rounded-3xl p-8 shadow-xl hover:bg-blue-100">
-      <h2 class="text-2xl font-bold text-blue-600 mb-2">Toán phạm vi 100</h2>
-      <p class="text-gray-600 text-sm">Cộng trừ và so sánh nâng cao 🚀</p>
+    <!-- Game 100 -->
+    <a href="game100.html" class="menu-card bg-white shadow-md hover:bg-blue-100">
+      <h2 class="text-lg font-bold text-blue-600 mb-1">Phạm vi 100</h2>
+      <p class="text-gray-600 text-xs">Nâng cao hơn 🚀</p>
     </a>
 
-    <!-- Game 4 -->
-    <a href="game500.html" class="menu-card bg-white rounded-3xl p-8 shadow-xl hover:bg-pink-100">
-      <h2 class="text-2xl font-bold text-pink-600 mb-2">Toán phạm vi 500</h2>
-      <p class="text-gray-600 text-sm">Thử thách tư duy với số lớn hơn 💪</p>
+    <!-- Game 500 -->
+    <a href="game500.html" class="menu-card bg-white shadow-md hover:bg-pink-100">
+      <h2 class="text-lg font-bold text-pink-600 mb-1">Phạm vi 500</h2>
+      <p class="text-gray-600 text-xs">Thử thách tư duy 💪</p>
     </a>
 
-    <!-- Game 5 -->
-    <a href="bangnhan.html" class="menu-card bg-white rounded-3xl p-8 shadow-xl hover:bg-yellow-100">
-      <h2 class="text-2xl font-bold text-yellow-600 mb-2">Bảng Cửu Chương</h2>
-      <p class="text-gray-600 text-sm">Ôn luyện bảng nhân ✨</p>
+    <!-- Bảng nhân -->
+    <a href="bangnhan.html" class="menu-card bg-white shadow-md hover:bg-yellow-100">
+      <h2 class="text-lg font-bold text-yellow-600 mb-1">Bảng Cửu Chương</h2>
+      <p class="text-gray-600 text-xs">Luyện bảng nhân ✨</p>
+    </a>
+
+    <!-- Toán tư duy vui nhộn -->
+    <a href="toanvui.html" class="menu-card bg-white shadow-md hover:bg-orange-100">
+      <h2 class="text-lg font-bold text-orange-600 mb-1">Toán Tư Duy Vui Nhộn 🧠</h2>
+      <p class="text-gray-600 text-xs">Câu đố và logic cho bé 😄</p>
     </a>
 
   </div>
 
-  <footer class="mt-10 text-gray-500 text-sm">
+  <footer class="mt-6 text-gray-500 text-xs md:text-sm">
     © 2025 Bé Vui Học Toán | Học mà chơi - Chơi mà học 💡
-     © Bản Quyền Thuộc Về Dubai 2020 #dubaity
   </footer>
 
 </body>
 </html>
-
