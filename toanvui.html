@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi Toán Đố Vui (Lớp 1)</title>
+    <!-- Tải Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải thư viện Tone.js cho âm thanh -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        /* Thiết lập font Inter và đảm bảo nền thân thiện với trẻ em */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #fceabb 0%, #f8b500 100%); /* Gradient vàng cam tươi sáng */
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Giữ nội dung ở trên cùng, tốt cho mobile */
+            padding: 20px;
+        }
+
+        .game-container {
+            max-width: 768px; /* Tối đa cho iPad */
+            width: 95%;
+            background-color: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .timer-display {
+            background-color: #ef4444; /* Đỏ tươi */
+            color: white;
+            font-size: 2rem;
+            font-weight: 900;
+            border-radius: 15px;
+            padding: 10px 0;
+            margin-bottom: 15px;
+            text-align: center;
+            box-shadow: 0 5px #b91c1c;
+        }
+        
+        .timer-display.low-time {
+            background-color: #fcd34d; /* Vàng cảnh báo */
+            color: #b45309;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        .question-card {
+            background-color: #fff3c9; /* Vàng nhạt */
+            border: 4px solid #f97316; /* Cam đậm */
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            min-height: 150px; /* Chiều cao tối thiểu cho câu hỏi */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .option-button {
+            transition: all 0.2s ease;
+            transform: scale(1);
+            font-size: 1.1rem;
+            padding: 15px 10px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px #d97706;
+            background-color: #f59e0b; /* Vàng cam */
+        }
+
+        .option-button:hover:not(:disabled) {
+            transform: scale(1.03);
+            box-shadow: 0 2px #d97706;
+        }
+
+        .option-button:active:not(:disabled) {
+            transform: translateY(2px);
+            box-shadow: 0 0 #d97706;
+        }
+
+        /* Hiệu ứng cho nút khi được chọn (để tránh nhấp nháy khi disable) */
+        .option-button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: scale(1);
+            box-shadow: 0 4px #d97706;
+        }
+        
+        /* Modal Feedback & Review Style */
+        .feedback-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            display: none; /* Ẩn theo mặc định */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .feedback-content {
+            background-color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8);
+            animation: popIn 0.3s forwards;
+            max-width: 90%;
+        }
+        
+        /* Cần điều chỉnh padding cho mobile để không bị quá to */
+        @media (max-width: 640px) {
+             .feedback-content {
+                padding: 20px;
+            }
+        }
+
+        @keyframes popIn {
+            to { transform: scale(1); }
+        }
+
+        .emoji {
+            font-size: 4rem;
+        }
+
+        /* Nút điều hướng */
+        .nav-button {
+            background-color: #3b82f6; /* Xanh dương */
+            box-shadow: 0 4px #1d4ed8;
+            padding: 10px 15px;
+            font-size: 1rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            transition: all 0.2s ease;
+        }
+
+        .nav-button:disabled {
+            background-color: #93c5fd;
+            box-shadow: 0 4px #60a5fa;
+            opacity: 0.8;
+            cursor: not-allowed;
+        }
+
+        .nav-button:hover:not(:disabled) {
+            transform: scale(1.03);
+            box-shadow: 0 2px #1d4ed8;
+        }
+        .nav-button:active:not(:disabled) {
+            transform: translateY(2px);
+            box-shadow: 0 0 #1d4ed8;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="gameContainer" class="game-container">
+        <!-- TIÊU ĐỀ -->
+        <h1 class="text-3xl font-black text-center text-orange-600 mb-6 border-b-4 border-orange-300 pb-2">
+            🧠 TOÁN ĐỐ VUI NHỘN (LỚP 1)
+        </h1>
+        
+        <!-- THỜI GIAN ĐẾM NGƯỢC -->
+        <div id="timerDisplay" class="timer-display">
+            ⏰ 3:00
+        </div>
+
+        <!-- HIỂN THỊ ĐIỂM SỐ -->
+        <div id="stats" class="flex justify-around items-center mb-6 p-3 bg-blue-100 rounded-lg shadow-inner">
+            <div class="text-center">
+                <p class="text-sm font-bold text-gray-600">Tổng Số Câu</p>
+                <p id="totalQuestions" class="text-2xl font-black text-blue-700"></p>
+            </div>
+            <div class="text-center">
+                <p class="text-sm font-bold text-gray-600">Đúng</p>
+                <p id="correctCount" class="text-2xl font-black text-green-600">0</p>
+            </div>
+            <div class="text-center">
+                <p class="text-sm font-bold text-gray-600">Sai / Bỏ Qua</p>
+                <p id="incorrectCount" class="text-2xl font-black text-red-600">0</p>
+            </div>
+            <div class="text-center">
+                <p class="text-sm font-bold text-gray-600">Câu Hiện Tại</p>
+                <p id="currentQuestionNumber" class="text-2xl font-black text-purple-700">1</p>
+            </div>
+        </div>
+
+        <!-- KHUNG CÂU HỎI -->
+        <div id="questionCard" class="question-card">
+            <p id="questionText">Đang tải câu hỏi...</p>
+        </div>
+
+        <!-- KHU VỰC ĐÁP ÁN -->
+        <div id="optionsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Các nút đáp án sẽ được chèn bằng JS -->
+        </div>
+        
+        <!-- NÚT ĐIỀU HƯỚNG -->
+        <div id="navigationButtons" class="flex justify-between mt-6">
+            <button id="prevButton" class="nav-button" disabled>&#9664; Quay Lại</button>
+            <button id="nextButton" class="nav-button">Tiếp Theo &#9654;</button>
+        </div>
+    </div>
+
+    <!-- MODAL HIỂN THỊ PHẢN HỒI -->
+    <div id="feedbackModal" class="feedback-modal">
+        <div id="feedbackContent" class="feedback-content">
+            <div class="emoji" id="feedbackEmoji"></div>
+            <h3 class="text-3xl font-bold mt-2 mb-4" id="feedbackTitle"></h3>
+            <p class="text-gray-700 mb-6" id="feedbackMessage"></p>
+            <button id="modalNextButton" class="nav-button w-full sm:w-1/2 mx-auto" disabled>
+                Tiếp Tục
+            </button>
+        </div>
+    </div>
+
+    <!-- KẾT THÚC BÀI TẬP (CÓ NÚT ÔN TẬP) -->
+    <div id="quizEnd" class="hidden question-card bg-green-500 text-white border-green-700" style="min-height: 250px;">
+        <h2 class="text-4xl font-black">HOÀN THÀNH! 🎉</h2>
+        <p class="text-xl mt-4">Con đã hoàn thành toàn bộ bài tập.</p>
+        <p class="text-2xl font-bold mt-2">Tổng kết: <span id="finalScore" class="text-yellow-300"></span></p>
+        
+        <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4 mt-6">
+            <button onclick="showReviewScreen()" class="p-3 bg-blue-600 text-white rounded-full font-bold shadow-lg hover:bg-blue-700 transition duration-300">
+                📖 Ôn Tập Lại
+            </button>
+            <button onclick="window.location.reload()" class="p-3 bg-white text-green-600 rounded-full font-bold shadow-lg hover:shadow-xl transition duration-300">
+                Chơi Lại
+            </button>
+        </div>
+    </div>
+    
+    <!-- REVIEW MODAL -->
+    <div id="reviewModal" class="feedback-modal">
+        <div class="feedback-content max-w-xl w-full p-6" style="max-height: 90vh; overflow-y: auto;">
+            <h3 class="text-3xl font-bold text-blue-700 mb-4 border-b pb-2">📖 Bảng Tổng Kết Ôn Tập</h3>
+            <p class="text-lg mb-4">
+                Đúng: <span id="reviewCorrect" class="font-bold text-green-600">0</span> |
+                Sai/Bỏ qua: <span id="reviewIncorrect" class="font-bold text-red-600">0</span>
+            </p>
+            <div id="reviewList" class="space-y-3">
+                <!-- Danh sách câu hỏi sẽ được tạo ở đây -->
+            </div>
+            <button onclick="hideReviewScreen()" class="nav-button w-full mt-6 bg-gray-500 hover:bg-gray-600 shadow-none">
+                Quay Lại Tổng Kết
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        // --- 1. DỮ LIỆU CÂU HỎI (50 BÀI TOÁN ĐỐ LỚP 1) ---
+        const initialQuestions = [
+            { question: "Lan có 10 cái bánh, cho Hoa 3 cái. Hỏi Lan còn bao nhiêu cái bánh?", options: ["6 cái", "7 cái", "8 cái", "13 cái"], answer: 7, explanation: "10 - 3 = 7 cái bánh." },
+            { question: "Mẹ mua 20 cái bánh, bé ăn hết 2 cái. Hỏi còn bao nhiêu cái?", options: ["19 cái", "18 cái", "17 cái", "22 cái"], answer: 18, explanation: "20 - 2 = 18 cái bánh." },
+            { question: "Mẹ đưa cho Thùy 10 nghìn, Thùy đi mua hoa mất 5 nghìn. Hỏi Thùy còn bao nhiêu tiền?", options: ["4 nghìn", "5 nghìn", "15 nghìn", "10 nghìn"], answer: 5, explanation: "10 - 5 = 5 nghìn đồng." },
+            { question: "Bố cho An 5 viên kẹo, mẹ cho thêm 4 viên. Hỏi An có tất cả bao nhiêu viên kẹo?", options: ["8 viên", "9 viên", "10 viên", "1 viên"], answer: 9, explanation: "5 + 4 = 9 viên kẹo." },
+            { question: "Trên cây có 15 con chim. 8 con bay đi. Hỏi còn lại mấy con?", options: ["7 con", "6 con", "9 con", "23 con"], answer: 7, explanation: "15 - 8 = 7 con chim." },
+            { question: "Hôm qua An tô 2 bức tranh. Hôm nay tô 3 bức. Ngày mai tô 4 bức. Hỏi An tô tổng cộng bao nhiêu bức?", options: ["7 bức", "8 bức", "9 bức", "10 bức"], answer: 9, explanation: "2 + 3 + 4 = 9 bức tranh." },
+            { question: "Lớp có 18 bạn. 10 bạn là nữ. Hỏi có bao nhiêu bạn nam?", options: ["9 bạn", "8 bạn", "10 bạn", "7 bạn"], answer: 8, explanation: "18 - 10 = 8 bạn nam." },
+            { question: "Trong hộp có 1 quả bóng đỏ, 2 quả xanh và 3 quả vàng. Tổng cộng có bao nhiêu quả bóng?", options: ["5 quả", "6 quả", "7 quả", "8 quả"], answer: 6, explanation: "1 + 2 + 3 = 6 quả bóng." },
+            { question: "Bạn Mai có 13 bông hoa. Mai tặng cô giáo 6 bông. Hỏi Mai còn lại bao nhiêu bông?", options: ["5 bông", "6 bông", "7 bông", "8 bông"], answer: 7, explanation: "13 - 6 = 7 bông hoa." },
+            { question: "Anh có 7 cuốn truyện. Em có số truyện bằng anh. Hỏi cả hai có bao nhiêu cuốn?", options: ["13 cuốn", "14 cuốn", "15 cuốn", "7 cuốn"], answer: 14, explanation: "7 + 7 = 14 cuốn truyện." },
+            { question: "Bác nông dân hái được 20 quả dưa. Bác bán đi 7 quả. Hỏi bác còn lại bao nhiêu quả dưa?", options: ["13 quả", "12 quả", "14 quả", "27 quả"], answer: 13, explanation: "20 - 7 = 13 quả dưa." },
+            { question: "Số lượng bút chì trong hộp là 6, thêm 5 bút nữa. Tổng cộng là bao nhiêu?", options: ["10 cây", "11 cây", "12 cây", "13 cây"], answer: 11, explanation: "6 + 5 = 11 cây bút." },
+            { question: "Trên bàn có 14 quyển sách. Bé cất đi 9 quyển. Còn lại mấy quyển?", options: ["4 quyển", "5 quyển", "6 quyển", "7 quyển"], answer: 5, explanation: "14 - 9 = 5 quyển sách." },
+            { question: "Có 8 quả cam trong rổ. Mẹ mua thêm 8 quả. Hỏi rổ có bao nhiêu quả cam?", options: ["15 quả", "16 quả", "17 quả", "18 quả"], answer: 16, explanation: "8 + 8 = 16 quả cam." },
+            { question: "Tùng có 11 viên bi. Tùng đánh rơi 3 viên. Hỏi Tùng còn lại bao nhiêu viên?", options: ["7 viên", "8 viên", "9 viên", "14 viên"], answer: 8, explanation: "11 - 3 = 8 viên bi." },
+            { question: "Trang trại có 9 con gà và 4 con vịt. Hỏi tổng cộng có bao nhiêu con gia cầm?", options: ["12 con", "13 con", "14 con", "15 con"], answer: 13, explanation: "9 + 4 = 13 con." },
+            { question: "Chiếc xe buýt có 17 hành khách. 5 người xuống xe. Hỏi còn lại bao nhiêu người?", options: ["10 người", "11 người", "12 người", "22 người"], answer: 12, explanation: "17 - 5 = 12 người." },
+            { question: "Lan chạy 10 mét, rồi chạy thêm 10 mét nữa. Tổng cộng Lan chạy bao nhiêu mét?", options: ["10 mét", "15 mét", "20 mét", "30 mét"], answer: 20, explanation: "10 + 10 = 20 mét." },
+            { question: "Có 16 chiếc ô tô đậu trong bãi. 7 chiếc rời đi. Hỏi còn lại bao nhiêu ô tô?", options: ["8 chiếc", "9 chiếc", "10 chiếc", "23 chiếc"], answer: 9, explanation: "16 - 7 = 9 chiếc ô tô." },
+            { question: "Mẹ chia kẹo cho ba anh em. Mỗi người được 5 viên. Hỏi mẹ đã chia tất cả bao nhiêu viên kẹo?", options: ["10 viên", "15 viên", "20 viên", "8 viên"], answer: 15, explanation: "5 + 5 + 5 = 15 viên kẹo." },
+            { question: "Một con kiến có 6 chân. Hỏi 2 con kiến có tổng cộng mấy chân?", options: ["8 chân", "10 chân", "12 chân", "6 chân"], answer: 12, explanation: "6 + 6 = 12 chân." },
+            { question: "Trong vườn có 7 bông hoa hồng và 5 bông hoa cúc. Hỏi hoa hồng nhiều hơn hoa cúc bao nhiêu bông?", options: ["1 bông", "2 bông", "3 bông", "12 bông"], answer: 2, explanation: "7 - 5 = 2 bông." },
+            { question: "Bé xếp 12 khối vuông. Sau đó bé tháo ra 4 khối. Hỏi còn lại mấy khối vuông?", options: ["6 khối", "7 khối", "8 khối", "9 khối"], answer: 8, explanation: "12 - 4 = 8 khối vuông." },
+            { question: "Bạn Hà có 8 cây bút màu. Bố mua thêm cho Hà 7 cây. Hỏi Hà có tất cả bao nhiêu cây bút màu?", options: ["14 cây", "15 cây", "16 cây", "1 cây"], answer: 15, explanation: "8 + 7 = 15 cây bút." },
+            { question: "Trên một cành cây có 19 chiếc lá. Gió thổi rụng 9 chiếc. Hỏi còn lại bao nhiêu chiếc lá?", options: ["9 chiếc", "10 chiếc", "11 chiếc", "28 chiếc"], answer: 10, explanation: "19 - 9 = 10 chiếc lá." },
+            { question: "Số lớn nhất có một chữ số cộng với 1 thì bằng bao nhiêu?", options: ["9", "10", "11", "0"], answer: 10, explanation: "Số lớn nhất có một chữ số là 9. 9 + 1 = 10." },
+            { question: "Số nhỏ nhất có hai chữ số trừ đi 1 thì bằng bao nhiêu?", options: ["11", "10", "9", "8"], answer: 9, explanation: "Số nhỏ nhất có hai chữ số là 10. 10 - 1 = 9." },
+            { question: "Bé lấy 14 que kem, ăn hết 4 que. Hỏi còn lại mấy que kem?", options: ["9 que", "10 que", "11 que", "18 que"], answer: 10, explanation: "14 - 4 = 10 que kem." },
+            { question: "Cửa hàng bán 6 cái mũ vào buổi sáng và 8 cái mũ vào buổi chiều. Hỏi tổng cộng bán được bao nhiêu cái mũ?", options: ["13 cái", "14 cái", "15 cái", "2 cái"], answer: 14, explanation: "6 + 8 = 14 cái mũ." },
+            { question: "Con có 15 con tem. Con cho bạn 7 con tem. Hỏi con còn lại bao nhiêu con?", options: ["7 con", "8 con", "9 con", "22 con"], answer: 8, explanation: "15 - 7 = 8 con tem." },
+            { question: "Mẹ có 10 quả trứng gà và 9 quả trứng vịt. Hỏi mẹ có tổng cộng bao nhiêu quả trứng?", options: ["18 quả", "19 quả", "20 quả", "1 quả"], answer: 19, explanation: "10 + 9 = 19 quả trứng." },
+            { question: "Anh có 12 viên phấn. Em lấy 5 viên để vẽ. Hỏi anh còn lại mấy viên phấn?", options: ["6 viên", "7 viên", "8 viên", "17 viên"], answer: 7, explanation: "12 - 5 = 7 viên phấn." },
+            { question: "Trên giá sách có 16 cuốn sách. Ba lấy đi 6 cuốn. Hỏi còn lại bao nhiêu cuốn?", options: ["9 cuốn", "10 cuốn", "11 cuốn", "22 cuốn"], answer: 10, explanation: "16 - 6 = 10 cuốn sách." },
+            { question: "Lớp học có 7 cái bàn, mỗi bàn có 2 bạn ngồi. Hỏi có bao nhiêu bạn đang ngồi? (7 + 7)", options: ["12 bạn", "13 bạn", "14 bạn", "15 bạn"], answer: 14, explanation: "7 + 7 = 14 bạn." },
+            { question: "Bé xếp hình 18 chiếc xe. Bé bị hỏng 9 chiếc. Hỏi còn lại bao nhiêu chiếc xe?", options: ["8 chiếc", "9 chiếc", "10 chiếc", "27 chiếc"], answer: 9, explanation: "18 - 9 = 9 chiếc xe." },
+            { question: "Đội bóng có 11 cầu thủ trên sân. Thêm 3 cầu thủ dự bị. Hỏi đội có tất cả bao nhiêu cầu thủ?", options: ["13 cầu thủ", "14 cầu thủ", "15 cầu thủ", "8 cầu thủ"], answer: 14, explanation: "11 + 3 = 14 cầu thủ." },
+            { question: "Con rùa bò được 5 mét. Con ốc sên bò kém hơn rùa 3 mét. Hỏi ốc sên bò được bao nhiêu mét?", options: ["8 mét", "3 mét", "2 mét", "1 mét"], answer: 2, explanation: "5 - 3 = 2 mét." },
+            { question: "Bé nhặt được 4 viên sỏi. Sau đó nhặt thêm 6 viên. Hỏi bé có bao nhiêu viên sỏi?", options: ["9 viên", "10 viên", "11 viên", "2 viên"], answer: 10, explanation: "4 + 6 = 10 viên sỏi." },
+            { question: "Bé muốn mua một món đồ chơi 17 nghìn. Bé đã có 9 nghìn. Hỏi bé cần thêm bao nhiêu nghìn nữa?", options: ["7 nghìn", "8 nghìn", "9 nghìn", "26 nghìn"], answer: 8, explanation: "17 - 9 = 8 nghìn." },
+            { question: "Từ số 1 đến số 20, có bao nhiêu số chẵn?", options: ["9 số", "10 số", "11 số", "20 số"], answer: 10, explanation: "Các số chẵn là: 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 (10 số)." },
+            { question: "Trong một phép tính, 5 cộng với số nào thì bằng 12?", options: ["6", "7", "8", "17"], answer: 7, explanation: "12 - 5 = 7." },
+            { question: "Nếu lấy 18 trừ đi 8, sau đó cộng thêm 1. Kết quả là bao nhiêu?", options: ["10", "11", "9", "27"], answer: 11, explanation: "18 - 8 = 10. Sau đó 10 + 1 = 11." },
+            { question: "Bé có 2 bàn tay, mỗi bàn có 5 ngón. Hỏi bé có bao nhiêu ngón tay?", options: ["5 ngón", "10 ngón", "12 ngón", "7 ngón"], answer: 10, explanation: "5 + 5 = 10 ngón tay." },
+            { question: "Có 10 ngón tay. Hỏi 2 người bạn có tất cả bao nhiêu ngón tay?", options: ["10 ngón", "15 ngón", "20 ngón", "30 ngón"], answer: 20, explanation: "10 + 10 = 20 ngón tay." },
+            { question: "Số liền trước của 15 là số nào?", options: ["13", "14", "16", "15"], answer: 14, explanation: "Số liền trước của 15 là 14." },
+            { question: "Số liền sau của 19 là số nào?", options: ["18", "19", "20", "21"], answer: 20, explanation: "Số liền sau của 19 là 20." },
+            { question: "Bé lấy 13 viên gạch xếp thành hàng. 4 viên bị đổ. Hỏi còn lại bao nhiêu viên?", options: ["8 viên", "9 viên", "10 viên", "17 viên"], answer: 9, explanation: "13 - 4 = 9 viên." },
+            { question: "Ba mua 8 quả chuối. Anh ăn 3 quả, em ăn 2 quả. Hỏi còn lại bao nhiêu quả?", options: ["4 quả", "3 quả", "5 quả", "13 quả"], answer: 3, explanation: "8 - 3 = 5. Sau đó 5 - 2 = 3 quả." },
+            { question: "12 con gà đang đi dạo. Thêm 6 con nữa nhập đàn. Hỏi có bao nhiêu con gà?", options: ["17 con", "18 con", "19 con", "6 con"], answer: 18, explanation: "12 + 6 = 18 con gà." },
+            { question: "Bé có 16 cái bút màu. Bé dùng hết 6 cái. Hỏi bé còn lại bao nhiêu cái bút không dùng?", options: ["9 cái", "10 cái", "11 cái", "22 cái"], answer: 10, explanation: "16 - 6 = 10 cái bút." }
+        ];
+
+        // --- 2. KHỞI TẠO BIẾN TRẠNG THÁI ---
+        const totalQuestions = initialQuestions.length;
+        let currentQuestionIndex = 0;
+        let timerInterval = null;
+        const TIMER_SECONDS = 180; // 3 phút
+
+        // Khởi tạo trạng thái tiến độ của người dùng cho tất cả 50 câu
+        let userProgress = initialQuestions.map(q => ({
+            ...q,
+            userAnswer: null, // Lưu giá trị đáp án (số)
+            isAnswered: false,
+            isCorrect: null, // true, false, 'skipped'
+        }));
+        
+        let correctCount = 0;
+        let incorrectCount = 0;
+        
+        // --- 3. KHỞI TẠO ÂM THANH (TONE.JS) ---
+        let happySynth;
+        let sadSynth;
+
+        async function initializeAudio() {
+            try {
+                await Tone.start();
+                happySynth = new Tone.MembraneSynth({"envelope": {"attack": 0.001, "decay": 0.3, "sustain": 0.01, "release": 0.1}}).toDestination();
+                sadSynth = new Tone.Synth({"oscillator": {"type": "sawtooth"}, "envelope": {"attack": 0.005, "decay": 0.1, "sustain": 0.0, "release": 0.1}}).toDestination();
+            } catch (error) {
+                console.error("Lỗi khởi tạo Audio Context:", error);
+            }
+        }
+        
+        initializeAudio();
+
+        function playHappySound() { if (happySynth) { happySynth.triggerAttackRelease("C5", "8n"); happySynth.triggerAttackRelease("E5", "8n", "+0.15"); } }
+        function playSadSound() { if (sadSynth) { sadSynth.triggerAttackRelease("C3", "16n"); sadSynth.triggerAttackRelease("B2", "16n", "+0.15"); } }
+
+
+        // --- 4. CẬP NHẬT GIAO DIỆN VÀ TRẠNG THÁI ---
+        const $questionText = document.getElementById('questionText');
+        const $optionsContainer = document.getElementById('optionsContainer');
+        const $feedbackModal = document.getElementById('feedbackModal');
+        const $feedbackEmoji = document.getElementById('feedbackEmoji');
+        const $feedbackTitle = document.getElementById('feedbackTitle');
+        const $feedbackMessage = document.getElementById('feedbackMessage');
+        const $modalNextButton = document.getElementById('modalNextButton');
+        const $quizEnd = document.getElementById('quizEnd');
+        const $gameContainer = document.getElementById('gameContainer');
+        const $prevButton = document.getElementById('prevButton');
+        const $nextButton = document.getElementById('nextButton');
+        const $timerDisplay = document.getElementById('timerDisplay');
+        const $reviewModal = document.getElementById('reviewModal'); // New: Review Modal
+        const $reviewList = document.getElementById('reviewList'); // New: Review List
+
+        
+        function updateStats() {
+            correctCount = userProgress.filter(p => p.isCorrect === true).length;
+            incorrectCount = userProgress.filter(p => p.isCorrect === false || p.isCorrect === 'skipped').length;
+
+            document.getElementById('correctCount').textContent = correctCount;
+            document.getElementById('incorrectCount').textContent = incorrectCount;
+            document.getElementById('currentQuestionNumber').textContent = Math.min(currentQuestionIndex + 1, totalQuestions);
+            document.getElementById('totalQuestions').textContent = totalQuestions;
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function startTimer() {
+            stopTimer();
+            let timeLeft = TIMER_SECONDS;
+            $timerDisplay.textContent = `⏰ ${formatTime(timeLeft)}`;
+            $timerDisplay.classList.remove('low-time');
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                $timerDisplay.textContent = `⏰ ${formatTime(timeLeft)}`;
+
+                if (timeLeft <= 30) {
+                    $timerDisplay.classList.add('low-time');
+                } else {
+                    $timerDisplay.classList.remove('low-time');
+                }
+
+                if (timeLeft <= 0) {
+                    stopTimer();
+                    handleTimeout();
+                }
+            }, 1000);
+        }
+
+        function formatTime(seconds) {
+            const min = Math.floor(seconds / 60);
+            const sec = seconds % 60;
+            return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+        }
+
+        function handleTimeout() {
+            // Chỉ ghi nhận bỏ qua nếu chưa trả lời
+            if (userProgress[currentQuestionIndex].isAnswered === false) {
+                userProgress[currentQuestionIndex].isAnswered = true;
+                userProgress[currentQuestionIndex].isCorrect = 'skipped';
+                incorrectCount++; // Tăng số câu sai/bỏ qua
+                updateStats();
+                
+                // Hiển thị modal thông báo hết giờ
+                $feedbackModal.style.display = 'flex';
+                $feedbackEmoji.textContent = '⏱️';
+                $feedbackTitle.textContent = 'Hết giờ rồi!';
+                $feedbackTitle.className = 'text-3xl font-bold mt-2 mb-4 text-red-600';
+                $feedbackMessage.textContent = `Câu này đã được bỏ qua. Đáp án đúng là: ${userProgress[currentQuestionIndex].explanation}`;
+                
+                setTimeout(() => { $modalNextButton.disabled = false; $modalNextButton.focus(); }, 500);
+            } else {
+                // Nếu đã trả lời rồi thì chỉ cần chuyển câu (trường hợp hiếm)
+                goToNextQuestion(true);
+            }
+        }
+
+        function renderQuestion() {
+            // Kiểm tra xem đây có phải màn hình review không, nếu có thì không chạy timer
+            const isReviewing = $reviewModal.style.display === 'flex';
+
+            if (currentQuestionIndex >= totalQuestions) {
+                showQuizEnd();
+                return;
+            }
+
+            const current = userProgress[currentQuestionIndex];
+            const isAnswered = current.isAnswered;
+            
+            $questionText.textContent = `${currentQuestionIndex + 1}. ${current.question}`;
+            $optionsContainer.innerHTML = '';
+            
+            // Render options
+            current.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-button hover:bg-orange-600';
+                button.textContent = option;
+                button.onclick = () => handleAnswer(option); // Lưu giá trị đáp án thay vì index
+                button.setAttribute('data-answer', option);
+
+                if (isAnswered || isReviewing) { // Luôn vô hiệu hóa nút nếu đang review
+                    button.disabled = true;
+                    if (parseInt(option) === current.answer) {
+                        // Đáp án đúng luôn màu xanh lá
+                        button.classList.remove('bg-orange-500', 'hover:bg-orange-600', 'bg-red-500', 'bg-gray-400');
+                        button.classList.add('bg-green-500');
+                        button.style.boxShadow = '0 4px #059669';
+                    } else if (parseInt(option) === current.userAnswer) {
+                        // Đáp án người dùng chọn (chỉ khi sai)
+                        button.classList.remove('bg-orange-500', 'hover:bg-orange-600', 'bg-green-500', 'bg-gray-400');
+                        button.classList.add('bg-red-500');
+                        button.style.boxShadow = '0 4px #dc2626';
+                    } else {
+                        // Đáp án không chọn và không phải đáp án đúng
+                        button.classList.add('bg-gray-400');
+                        button.classList.remove('bg-orange-500', 'hover:bg-orange-600', 'bg-green-500', 'bg-red-500');
+                    }
+                }
+                
+                $optionsContainer.appendChild(button);
+            });
+            
+            // Cập nhật Timer và Navigation
+            stopTimer();
+            if (!isAnswered && !isReviewing) {
+                startTimer();
+                // FIX: Dùng innerHTML để hiển thị ký tự arrow đúng cách
+                $nextButton.innerHTML = 'Bỏ Qua &nbsp;&#9654;';
+                $timerDisplay.classList.remove('bg-green-500', 'text-white');
+                $timerDisplay.classList.add('bg-red-500');
+            } else {
+                $timerDisplay.textContent = '✅ Đã trả lời';
+                $timerDisplay.classList.remove('bg-red-500', 'low-time');
+                $timerDisplay.classList.add('bg-green-500');
+                // FIX: Dùng innerHTML để hiển thị ký tự arrow đúng cách
+                $nextButton.innerHTML = 'Tiếp Theo &nbsp;&#9654;';
+            }
+            
+            // Nút điều hướng
+            $prevButton.disabled = currentQuestionIndex === 0;
+            // Nếu đang review thì cho phép đi tới/lui
+            if (isReviewing) {
+                 $prevButton.onclick = goToPreviousQuestion;
+                 $nextButton.onclick = goToNextQuestion;
+                 $prevButton.disabled = currentQuestionIndex === 0;
+                 $nextButton.disabled = currentQuestionIndex === totalQuestions - 1;
+            } else {
+                // Logic bình thường
+                $nextButton.disabled = currentQuestionIndex === totalQuestions - 1 && isAnswered; 
+            }
+
+            updateStats();
+        }
+
+        function handleAnswer(selectedOption) {
+            stopTimer(); // Dừng timer ngay lập tức
+
+            const current = userProgress[currentQuestionIndex];
+            if (current.isAnswered) return; 
+
+            // parseInt(selectedOption) vì đáp án là số
+            const isCorrect = (parseInt(selectedOption) === current.answer);
+            
+            // Cập nhật trạng thái
+            current.isAnswered = true;
+            current.userAnswer = parseInt(selectedOption);
+            current.isCorrect = isCorrect;
+            
+            // Cập nhật thống kê
+            updateStats();
+
+            // Hiển thị phản hồi
+            showFeedback(isCorrect, current.explanation);
+            
+            // Cập nhật lại giao diện nút đáp án
+            renderQuestion(); 
+        }
+
+        function showFeedback(isCorrect, explanation) {
+            $feedbackModal.style.display = 'flex';
+            $modalNextButton.disabled = true;
+
+            if (isCorrect) {
+                $feedbackEmoji.textContent = '🥳';
+                $feedbackTitle.textContent = 'Tuyệt vời!';
+                $feedbackTitle.className = 'text-3xl font-bold mt-2 mb-4 text-green-600';
+                $feedbackMessage.textContent = 'Chính xác rồi! Con thật thông minh.';
+                playHappySound();
+            } else {
+                $feedbackEmoji.textContent = '😢';
+                $feedbackTitle.textContent = 'Chưa đúng rồi!';
+                $feedbackTitle.className = 'text-3xl font-bold mt-2 mb-4 text-red-600';
+                $feedbackMessage.textContent = `Đáp án đúng là: ${explanation}`;
+                playSadSound();
+            }
+
+            // Cho phép chuyển câu hỏi sau 0.5 giây
+            setTimeout(() => {
+                $modalNextButton.disabled = false;
+                $modalNextButton.focus();
+            }, 500);
+        }
+        
+        function goToPreviousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                renderQuestion();
+            }
+        }
+
+        function goToNextQuestion(isFromModal = false) {
+             if (currentQuestionIndex < totalQuestions - 1) {
+                currentQuestionIndex++;
+                renderQuestion();
+            } else {
+                // Nếu là câu cuối cùng
+                showQuizEnd();
+            }
+        }
+
+        // --- CHỨC NĂNG ÔN TẬP (REVIEW) MỚI ---
+        
+        function showReviewScreen() {
+            $quizEnd.classList.add('hidden'); // Ẩn màn hình kết thúc
+            $reviewModal.style.display = 'flex'; // Hiện màn hình ôn tập
+            
+            document.getElementById('reviewCorrect').textContent = correctCount;
+            document.getElementById('reviewIncorrect').textContent = incorrectCount;
+            $reviewList.innerHTML = '';
+
+            userProgress.forEach((q, index) => {
+                const item = document.createElement('div');
+                let statusText = 'Chưa trả lời';
+                let statusClass = 'bg-gray-100 border-gray-300 text-gray-700';
+                let statusEmoji = '❓';
+
+                if (q.isCorrect === true) {
+                    statusText = 'Đúng';
+                    statusClass = 'bg-green-100 border-green-500 text-green-700';
+                    statusEmoji = '✅';
+                } else if (q.isCorrect === false) {
+                    statusText = 'Sai';
+                    statusClass = 'bg-red-100 border-red-500 text-red-700';
+                    statusEmoji = '❌';
+                } else if (q.isCorrect === 'skipped') {
+                    statusText = 'Bỏ qua';
+                    statusClass = 'bg-yellow-100 border-yellow-500 text-yellow-700';
+                    statusEmoji = '⏭️';
+                }
+                
+                // Thêm hiệu ứng hover và padding/margin
+                item.className = `${statusClass} p-3 rounded-lg flex justify-between items-center cursor-pointer border-2 hover:shadow-md transition duration-200`;
+                item.innerHTML = `
+                    <div class="flex items-center space-x-2 w-4/5 text-left">
+                        <span class="font-bold text-lg">${index + 1}.</span>
+                        <p class="truncate text-sm sm:text-base">${q.question}</p>
+                    </div>
+                    <div class="flex items-center flex-shrink-0">
+                        <span class="font-semibold text-sm mr-2 hidden sm:inline">${statusText}</span>
+                        <span class="text-xl">${statusEmoji}</span>
+                    </div>
+                `;
+                item.onclick = () => jumpToQuestion(index);
+                $reviewList.appendChild(item);
+            });
+        }
+
+        function hideReviewScreen() {
+            $reviewModal.style.display = 'none';
+            $quizEnd.classList.remove('hidden'); // Hiện màn hình kết thúc
+        }
+
+        function jumpToQuestion(index) {
+            currentQuestionIndex = index;
+            $reviewModal.style.display = 'none';
+            $quizEnd.classList.add('hidden');
+            // Đảm bảo container game được hiển thị
+            $gameContainer.classList.remove('hidden'); 
+            
+            // Đặt lại các nút điều hướng để cho phép di chuyển trong chế độ review
+            $prevButton.onclick = goToPreviousQuestion;
+            $nextButton.onclick = goToNextQuestion;
+            
+            renderQuestion();
+        }
+        // --- KẾT THÚC CHỨC NĂNG ÔN TẬP ---
+
+
+        // Handlers cho nút điều hướng chính
+        $nextButton.onclick = () => goToNextQuestion(false);
+        $prevButton.onclick = goToPreviousQuestion;
+        $modalNextButton.onclick = () => {
+            $feedbackModal.style.display = 'none';
+            goToNextQuestion(true);
+        };
+
+
+        function showQuizEnd() {
+            stopTimer();
+            $gameContainer.classList.add('hidden');
+            $quizEnd.classList.remove('hidden');
+            document.getElementById('finalScore').textContent = `${correctCount}/${totalQuestions} câu đúng!`;
+        }
+
+        // --- 5. KHỞI CHẠY ---
+        window.onload = () => {
+            renderQuestion();
+        };
+        
+    </script>
+
+</body>
+</html>
